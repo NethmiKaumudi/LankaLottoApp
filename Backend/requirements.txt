@@ -1,0 +1,7 @@
+flask
+pymongo
+werkzeug
+twilio
+python-dotenv
+mongomock==4.1.2 # For mocking MongoDB
+# unittest-mock     # For mocking external dependencies
