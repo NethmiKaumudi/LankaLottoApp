@@ -1,30 +1,104 @@
-# seed/seed_lottery_agents.py
 from pymongo import MongoClient
 import random
 from config.config import Config
 
-# Lists of common Sri Lankan names
-MALE_FIRST_NAMES = [
-    "Amal", "Nimal", "Kamal", "Sunil", "Ranil", "Saman", "Dilan", "Chathura", "Lahiru", "Tharindu",
-    "Sanjaya", "Priyantha", "Ruwan", "Asanka", "Duminda", "Nuwan", "Chaminda", "Janaka", "Sampath", "Upul"
+# List of agent names provided
+AGENT_NAMES = [
+    "Nimal Abesekara",
+    "Kamal Sahabandu",
+    "Jayanthi Weeraccon",
+    "Malakanthi",
+    "Sisira Perera",
+    "Priyantha Gunasekara",
+    "Indika Rajapaksha",
+    "Lalitha Wickramasinghe",
+    "Saman Kumara",
+    "Dilani Fernando",
+    "Mahesh Rukshan",
+    "Nadeesha Wijesuriya",
+    "Tharindu Silva",
+    "Chandima Perera",
+    "Dinesh Jayawardena",
+    "Sushantha Kariyawasam",
+    "Sanduni Pathirana",
+    "Ruvini Seneviratne",
+    "Vishal Wijekoon",
+    "Duminda Weerasinghe",
+    "Anusha Dissanayake",
+    "Rashmi Herath",
+    "Lahiru Perera",
+    "Madhusanka Malwattage",
+    "Tissa Samarasinghe",
+    "Niroshan Ranasinghe",
+    "Dulani Aravinda",
+    "Mahinda Mendis",
+    "Kumari Jayakody",
+    "Ravi Amarasinghe",
+    "Vimukthi Wickramasinghe",
+    "Chaminda Gunaratne",
+    "Dilanthi Jayasinghe",
+    "Nimali Hettiarachchi",
+    "Pradeep Perera",
+    "Priyanka Ranatunga",
+    "Sujeewa Rajapaksha",
+    "Prasanna Kumara",
+    "Kanchana Wijewardene",
+    "Uthpala Rajapaksha",
+    "Dinesh Perera",
+    "Aishwarya Gunawardena",
+    "Sandeepa De Silva",
+    "Siriwardena Dissanayake",
+    "Ajith Kumarasinghe",
+    "Buddhi Perera",
+    "Chatura Perera",
+    "Mihira Fernando",
+    "Gayani Priyadarshani",
+    "Lakmal Samarasinghe",
+    "Piyumini Karunarathne",
+    "Rajitha Karunarathne",
+    "Nalaka Wijesuriya",
+    "Tushara Gunathilake",
+    "Subhani Khatun",
+    "Charitha Jayaweera",
+    "Senaka Abeysinghe",
+    "Sangeetha Munasinghe",
+    "Pradeep Kumara",
+    "Asela Perera",
+    "Kanthi Rathnayake",
+    "Piumi Rajapaksha",
+    "Tharanga Lakmal",
+    "Dinesh Rajapakse",
+    "Muthumani Rajapaksha",
+    "Ariyanayaka Perera",
+    "Indrajith Abeykoon",
+    "Kasun Prasanna",
+    "Ruwani Perera",
+    "Samith Wijewickrama",
+    "Vijitha Gunathilaka",
+    "Tharushi Jayasuriya",
+    "Sashini Karunarathna",
+    "Shashini Perera",
+    "Kavindi Liyanage",
+    "Indika Gunathilaka",
+    "Ravindra Liyanage",
+    "Chamikara Wijesiri",
+    "Sujan Fernando",
+    "Madhuri Harischandra",
+    "Subodhani Dissanayake",
+    "Kaveesha Rathnayake",
+    "Piumi Premarathna",
+    "Nayanathara Perera",
+    "Tina Kumari",
+    "Chanaka Mahendra",
+    "Ravindu Abeyratne",
+    "Hiruni Chandrasiri",
+    "Ajantha Amarasekara",
+    "Sanjani Kanchana",
+    "Dinesh Kularatne",
+    "Chathuranga Kalubowila",
+    "Amara Weerasinghe",
+    "Amara Weerasing"
 ]
-
-FEMALE_FIRST_NAMES = [
-    "Nadeesha", "Sanduni", "Tharushi", "Kavya", "Anjali", "Shanika", "Dilani", "Pavithra", "Madhusha", "Chathurika",
-    "Sewwandi", "Nirosha", "Gayani", "Ruwanthi", "Ishara", "Manjula", "Sriyani", "Kanchana", "Deepika", "Wasanthi"
-]
-
-SURNAMES = [
-    "Perera", "Silva", "Fernando", "Jayasinghe", "Gunawardena", "Weerasinghe", "Bandara", "Kumara", "Rathnayake", "Wickramasinghe",
-    "De Silva", "Jayawardena", "Dissanayake", "Karunaratne", "Rajapaksa", "Fonseka", "Samarasinghe", "Liyanage", "Abeysinghe", "Herath"
-]
-
-def generate_sri_lankan_name():
-    # Randomly choose gender
-    is_male = random.choice([True, False])
-    first_name = random.choice(MALE_FIRST_NAMES if is_male else FEMALE_FIRST_NAMES)
-    surname = random.choice(SURNAMES)
-    return f"{first_name} {surname}"
 
 def seed_lottery_agents():
     client = MongoClient(Config.MONGO_URI)
@@ -33,12 +107,12 @@ def seed_lottery_agents():
 
     if lottery_agents_collection.count_documents({}) == 0:
         agents = []
-        for i in range(200):
+        for agent_name in AGENT_NAMES:
             # Generate a 4-digit number and format it with leading zeros
             nlb_number = random.randint(0, 9999)
             dlb_number = random.randint(0, 9999)
             agent = {
-                'agent_name': generate_sri_lankan_name(),
+                'agent_name': agent_name,
                 'nlb_no': f'N{nlb_number:04d}',  # e.g., N0125
                 'dlb_no': f'D{dlb_number:04d}'   # e.g., D5632
             }
