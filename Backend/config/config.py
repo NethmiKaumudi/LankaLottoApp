@@ -12,3 +12,5 @@ class Config:
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE = os.getenv('TWILIO_PHONE_NUMBER')
     SALES_DATA_PATH = 'data/sales_data_full_two_year.csv'
+    UPLOAD_FOLDER = "uploads"  # Directory to store uploaded images
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
