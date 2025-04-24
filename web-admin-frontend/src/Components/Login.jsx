@@ -15,25 +15,18 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await new Promise((resolve) => {
-        setTimeout(() => {
-          if (username && password) {
-            resolve({
-              ok: true,
-              json: async () => ({ message: 'Login successful' }),
-            });
-          } else {
-            resolve({
-              ok: false,
-              json: async () => ({ message: 'Username and password are required' }),
-            });
-          }
-        }, 1000);
+      const response = await fetch('http://192.168.8.152:5000/users/admin-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        console.log('Login successful:', data);
+        console.log('Admin login successful:', data);
+        localStorage.setItem('adminToken', data.token); // Store admin token
         alert('Login successful! Redirecting to Admin Dashboard...');
         navigate('/admin-dashboard');
       } else {
@@ -93,12 +86,12 @@ const Login = () => {
 
         <div className="w-full md:w-1/2 max-w-md">
           <div className="bg-white rounded-3xl p-8 shadow-lg border-2 border-gray-300">
-            <h2 className="text-2xl font-bold text-center mb-2">Login</h2>
+            <h2 className="text-2xl font-bold text-center mb-2">Admin Login</h2>
             <p className="text-center text-gray-700 mb-6">Please Sign In to continue</p>
 
             <form onSubmit={handleSubmit}>
               <div className="mb-6">
-                <label htmlFor="username" className="block text-gray-700 mb-2">User Name</label>
+                <label htmlFor="username" className="block text-gray-700 mb-2">Username</label>
                 <input
                   type="text"
                   id="username"

@@ -212,7 +212,7 @@ def validate_ticket(qr_details, face_numbers, pyzbar_success):
         return f"⚠️ Invalid: {'; '.join(issues)} (QR {source}: {qr_combo}, Face Gemini: {face_combo})"
 
 def get_winning_numbers_from_nlb(lottery_name, draw_no):
-    chromedriver_path = r"C:\Users\DELL\Downloads\chromedriver-win64\chromedriver-win64\chromedriver.exe"
+    chromedriver_path = r"E:\Downloads\chromedriver-win64\chromedriver-win64\chromedriver.exe."
     chrome_options = Options()
     chrome_options.add_argument('--headless')
     chrome_options.add_argument('--no-sandbox')

@@ -1,21 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../Assets/LankaLottoLogo.png";
 
 const AgentApprove = () => {
   const [logoError, setLogoError] = useState(false);
-  const [pendingAgents, setPendingAgents] = useState([
-    { id: 1, name: "David Johnson", location: "Colombo", contact: "0771112233", status: "Pending" },
-    { id: 2, name: "Sarah Williams", location: "Kandy", contact: "0772223344", status: "Pending" },
-    { id: 3, name: "Mark Taylor", location: "Galle", contact: "0773334455", status: "Pending" },
-  ]);
+  const [pendingAgents, setPendingAgents] = useState([]);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchPendingAgents = async () => {
+      try {
+        const response = await fetch('http://192.168.8.152:5000/users/pending-agents', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('adminToken')}`  // Admin token for authentication
+          }
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setPendingAgents(data);
+        } else {
+          console.error(data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching pending agents:', error);
+      }
+    };
+
+    fetchPendingAgents();
+  }, []);
 
   const handleLogoError = () => setLogoError(true);
-  const navigate = useNavigate();
-  const handleLogout = () => navigate("/");
+  const handleLogout = () => {
+    localStorage.removeItem('adminToken');
+    navigate("/");
+  };
 
-  const approveAgent = (id) => {
-    setPendingAgents(pendingAgents.filter(agent => agent.id !== id));
+  const approveAgent = async (id) => {
+    try {
+      const response = await fetch(`http://192.168.8.152:5000/users/approve-agent/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setPendingAgents(pendingAgents.filter(agent => agent.id !== id));
+        alert('Agent approved successfully.');
+      } else {
+        alert(data.message);
+      }
+    } catch (error) {
+      console.error('Error approving agent:', error);
+      alert('Failed to approve agent.');
+    }
   };
 
   return (
@@ -40,7 +78,8 @@ const AgentApprove = () => {
         >
           Logout
           <i className="fas fa-sign-out-alt"></i>
-        </button>      </header>
+        </button>
+      </header>
 
       <div className="flex">
         <div className="w-64 flex flex-col py-8 px-6 min-h-[calc(100vh-80px)] border-r border-blue-400">
@@ -76,9 +115,9 @@ const AgentApprove = () => {
                 {pendingAgents.map(agent => (
                   <tr key={agent.id} className="bg-gray-900 text-white border-t border-gray-800">
                     <td className="py-4 px-6 text-center">{agent.id}</td>
-                    <td className="py-4 px-6 text-center">{agent.name}</td>
-                    <td className="py-4 px-6 text-center">{agent.location}</td>
-                    <td className="py-4 px-6 text-center">{agent.contact}</td>
+                    <td className="py-4 px-6 text-center">{agent.agent_name}</td>
+                    <td className="py-4 px-6 text-center">{agent.address}</td>
+                    <td className="py-4 px-6 text-center">{agent.contact_no}</td>
                     <td className="py-4 px-6 text-center">
                       <button onClick={() => approveAgent(agent.id)} className="bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-700">Approve</button>
                     </td>

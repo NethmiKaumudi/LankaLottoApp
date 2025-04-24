@@ -1,78 +1,67 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom"; // Import useNavigate
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../Assets/LankaLottoLogo.png";
 
 const AgentSalesDetails = () => {
   const [search, setSearch] = useState("");
   const [logoError, setLogoError] = useState(false);
+  const [salesData, setSalesData] = useState([]);
+  const [error, setError] = useState(null);
 
-  const salesData = [
-    {
-      month: "January",
-      totalSales: 500,
-      newCustomers: 120,
-      repeatCustomers: 380,
-      revenue: 10000,
-      satisfactory: 23.3,
-    },
-    {
-      month: "February",
-      totalSales: 450,
-      newCustomers: 100,
-      repeatCustomers: 350,
-      revenue: 9000,
-      satisfactory: 56.3,
-    },
-    {
-      month: "March",
-      totalSales: 550,
-      newCustomers: 130,
-      repeatCustomers: 420,
-      revenue: 11000,
-      satisfactory: 89.3,
-    },
-    {
-      month: "April",
-      totalSales: 600,
-      newCustomers: 150,
-      repeatCustomers: 450,
-      revenue: 12000,
-      satisfactory: 45.3,
-    },
-    {
-      month: "May",
-      totalSales: 700,
-      newCustomers: 170,
-      repeatCustomers: 530,
-      revenue: 14000,
-      satisfactory: 36.3,
-    },
-    {
-      month: "June",
-      totalSales: 650,
-      newCustomers: 160,
-      repeatCustomers: 490,
-      revenue: 13000,
-      satisfactory: 78.3,
-    },
-  ];
-
-  const filteredSalesData = salesData.filter((data) =>
-    data.month.toLowerCase().includes(search.toLowerCase())
-  );
+  const navigate = useNavigate();
 
   const handleLogoError = () => {
     setLogoError(true);
   };
 
-  // Initialize useNavigate for logout
-  const navigate = useNavigate();
-
-  // Handle logout action
   const handleLogout = () => {
-    console.log("Logged out");
-    navigate("/"); // Navigate back to login page
+    localStorage.removeItem("adminToken");
+    navigate("/");
   };
+
+  useEffect(() => {
+    const fetchAllSales = async () => {
+      try {
+        const token = localStorage.getItem("adminToken");
+        if (!token) {
+          navigate("/");
+          return;
+        }
+        const response = await fetch("http://192.168.8.152:5000/sales/all", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+
+        if (response.ok) {
+          setSalesData(data);
+        } else {
+          setError(data.message || "Failed to fetch sales data");
+        }
+      } catch (err) {
+        setError("Error fetching sales data: " + err.message);
+      }
+    };
+
+    fetchAllSales();
+  }, [navigate]);
+
+  // Calculate totals
+  const totalDLBSales = salesData.reduce((sum, data) => sum + data.dlb_sale, 0).toFixed(2);
+  const totalNLBSales = salesData.reduce((sum, data) => sum + data.nlb_sale, 0).toFixed(2);
+  const totalSales = salesData.reduce((sum, data) => sum + data.total_sale, 0).toFixed(2);
+
+  // Enhanced search functionality
+  const filteredSalesData = salesData.filter((data) =>
+    [
+      data.date_of_sale || "",
+      data.province || "",
+      data.district || "",
+      data.area || "",
+      data.agent_no || "",
+    ].some((field) => field.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
     <div className="bg-gradient-to-r from-blue-200 to-blue-500 min-h-screen">
@@ -104,9 +93,7 @@ const AgentSalesDetails = () => {
           </div>
           <div>
             <h1 className="text-xl font-bold text-blue-900">Lanka Lotto</h1>
-            <p className="text-blue-900 text-xs">
-              Check Your Tickets Instantly
-            </p>
+            <p className="text-blue-900 text-xs">Check Your Tickets Instantly</p>
           </div>
         </div>
         <button
@@ -144,7 +131,7 @@ const AgentSalesDetails = () => {
               <li>
                 <Link
                   to="/admin-dashboard"
-                  className="text-black hover:text-blue-700 flex items-center gap-2"
+                  className="text-black hover:text-blue-700"
                 >
                   Dashboard
                 </Link>
@@ -152,7 +139,7 @@ const AgentSalesDetails = () => {
               <li>
                 <Link
                   to="/agent-approve"
-                  className="text-black hover:text-blue-700 flex items-center gap-2"
+                  className="text-black hover:text-blue-700"
                 >
                   Agent Approve
                 </Link>
@@ -160,7 +147,7 @@ const AgentSalesDetails = () => {
               <li>
                 <Link
                   to="/agent-details"
-                  className="text-black hover:text-blue-700 flex items-center gap-2"
+                  className="text-black hover:text-blue-700"
                 >
                   Agent Details
                 </Link>
@@ -168,7 +155,7 @@ const AgentSalesDetails = () => {
               <li>
                 <Link
                   to="/agent-sales-details"
-                  className="text-black font-bold hover:text-blue-700 flex items-center gap-2"
+                  className="text-black font-bold hover:text-blue-700"
                 >
                   Agent Sales Details
                 </Link>
@@ -176,7 +163,7 @@ const AgentSalesDetails = () => {
               <li>
                 <Link
                   to="/sales-predictions"
-                  className="text-black hover:text-blue-700 flex items-center gap-2"
+                  className="text-black hover:text-blue-700"
                 >
                   Sales Predictions and Suggestions
                 </Link>
@@ -187,59 +174,75 @@ const AgentSalesDetails = () => {
 
         {/* Dashboard Content */}
         <div className="flex-1 p-8">
-          <h2 className="text-2xl font-bold mb-6">Agent Sales Details</h2>
+          <h2 className="text-2xl font-bold mb-6 text-black">Agent Sales Details</h2>
           <div className="mb-6">
-            <div className="relative w-full max-w-xs">
+            <div className="relative w-full max-w-md mb-6">
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search by date, province, district, area, or agent no"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full px-4 py-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
+                <h3 className="text-lg font-medium mb-2">Total DLB Sales</h3>
+                <p className="text-2xl font-bold">Rs. {totalDLBSales}</p>
+              </div>
+              <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
+                <h3 className="text-lg font-medium mb-2">Total NLB Sales</h3>
+                <p className="text-2xl font-bold">Rs. {totalNLBSales}</p>
+              </div>
+              <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
+                <h3 className="text-lg font-medium mb-2">Total Sales</h3>
+                <p className="text-2xl font-bold">Rs. {totalSales}</p>
+              </div>
+              <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
+                <h3 className="text-lg font-medium mb-2">Total Records</h3>
+                <p className="text-2xl font-bold">{filteredSalesData.length}</p>
+              </div>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full rounded-lg overflow-hidden">
-              <thead className="bg-gray-900 text-white">
-                <tr>
-                  <th className="py-4 px-6 text-center">MONTH</th>
-                  <th className="py-4 px-6 text-center">TOTAL SALES</th>
-                  <th className="py-4 px-6 text-center">NEW CUSTOMER</th>
-                  <th className="py-4 px-6 text-center">REPEAT CUSTOMER</th>
-                  <th className="py-4 px-6 text-center">REVENUE ($)</th>
-                  <th className="py-4 px-6 text-center">SATISFACTORY (%)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredSalesData.map((data, index) => (
-                  <tr
-                    key={index}
-                    className="bg-gray-900 text-white border-t border-gray-800"
-                  >
-                    <td className="py-4 px-6 text-center">{data.month}</td>
-                    <td className="py-4 px-6 text-center">{data.totalSales}</td>
-                    <td className="py-4 px-6 text-center">
-                      {data.newCustomers}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      {data.repeatCustomers}
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <div className="bg-gray-300 text-black text-center rounded-full px-3 py-1 w-24 mx-auto">
-                        {data.revenue}
-                      </div>
-                    </td>
-                    <td className="py-4 px-6 text-center">
-                      <div className="bg-gray-300 text-black text-center rounded-full px-3 py-1 w-24 mx-auto">
-                        {data.satisfactory}%
-                      </div>
-                    </td>
+          {error ? (
+            <div className="text-red-500 text-center">{error}</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full rounded-lg overflow-hidden">
+                <thead className="bg-gray-900 text-white">
+                  <tr>
+                    <th className="py-4 px-6 text-center">DATE</th>
+                    <th className="py-4 px-6 text-center">AGENT NO</th>
+                    <th className="py-4 px-6 text-center">PROVINCE</th>
+                    <th className="py-4 px-6 text-center">DISTRICT</th>
+                    <th className="py-4 px-6 text-center">AREA</th>
+                    <th className="py-4 px-6 text-center">DLB SALES</th>
+                    <th className="py-4 px-6 text-center">NLB SALES</th>
+                    <th className="py-4 px-6 text-center">TOTAL SALES</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredSalesData.map((data, index) => (
+                    <tr
+                      key={data._id}
+                      className={`${
+                        index % 2 === 0 ? "bg-gray-100" : "bg-white"
+                      } text-gray-800 hover:bg-blue-100`}
+                    >
+                      <td className="py-4 px-6 text-center">{data.date_of_sale}</td>
+                      <td className="py-4 px-6 text-center">{data.agent_no}</td>
+                      <td className="py-4 px-6 text-center">{data.province}</td>
+                      <td className="py-4 px-6 text-center">{data.district}</td>
+                      <td className="py-4 px-6 text-center">{data.area}</td>
+                      <td className="py-4 px-6 text-center">{data.dlb_sale}</td>
+                      <td className="py-4 px-6 text-center">{data.nlb_sale}</td>
+                      <td className="py-4 px-6 text-center">{data.total_sale}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>

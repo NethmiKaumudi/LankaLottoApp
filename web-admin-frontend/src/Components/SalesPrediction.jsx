@@ -13,13 +13,14 @@ import {
   Legend,
 } from "chart.js";
 import { FaBell } from "react-icons/fa";
+import jsPDF from "jspdf"; // Import jsPDF
 
 // Register necessary Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const SalesPrediction = () => {
   const [logoError, setLogoError] = useState(false);
-  const [period, setPeriod] = useState(""); 
+  const [period, setPeriod] = useState("");
   const [predictions, setPredictions] = useState([]);
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
@@ -34,10 +35,10 @@ const SalesPrediction = () => {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://127.0.0.1:5000/sales/predict/${selectedPeriod}`);
+      const response = await fetch(`http://127.0.0.1:5000/sales_pred/predict/${selectedPeriod}`);
       if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
       const data = await response.json();
-      console.log("API Response:", data); // Log the response to debug
+      console.log("API Response:", data);
       setPredictions(data.predictions || []);
       setSummary(data.summary || {});
       setSuggestions(data.suggestions || []);
@@ -53,12 +54,10 @@ const SalesPrediction = () => {
 
   const handlePeriodChange = (e) => {
     e.preventDefault();
-    // Clear all previous data
     setPredictions([]);
     setSummary({});
     setSuggestions([]);
     setLoading(false);
-    // Set the new period
     setPeriod(e.target.value);
   };
 
@@ -82,42 +81,130 @@ const SalesPrediction = () => {
     });
   };
 
-  // Format the revenue in LKR currency format (assuming 1 ticket = LKR 100 for demo purposes)
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-LK", {
       style: "currency",
       currency: "LKR",
       minimumFractionDigits: 0,
-    }).format(amount * 100); // Assuming 1 ticket = LKR 100
+    }).format(amount * 100);
   };
 
-  // Chart data with updated theme-based colors and background
+  // Function to generate and download PDF
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 10;
+    let yOffset = 20;
+
+    // Title
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Lanka Lotto Sales Predictions", pageWidth / 2, yOffset, { align: "center" });
+    yOffset += 10;
+
+    // Period
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Period: ${summary.period_label || period.charAt(0).toUpperCase() + period.slice(1)}`, margin, yOffset);
+    yOffset += 10;
+
+    // Predictions Table Header
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Predictions:", margin, yOffset);
+    yOffset += 7;
+
+    // Table Headers
+    const headers = ["Date", "NLB Tickets", "DLB Tickets", "Total Tickets"];
+    const colWidths = [50, 40, 40, 40];
+    let xOffset = margin;
+    headers.forEach((header, index) => {
+      doc.text(header, xOffset, yOffset);
+      xOffset += colWidths[index];
+    });
+    yOffset += 5;
+    doc.line(margin, yOffset, pageWidth - margin, yOffset); // Horizontal line
+    yOffset += 5;
+
+    // Table Data
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    predictions.forEach((pred) => {
+      xOffset = margin;
+      const row = [
+        formatDate(pred.Date),
+        Math.round(pred["NLB Predicted Tickets"]).toLocaleString(),
+        Math.round(pred["DLB Predicted Tickets"]).toLocaleString(),
+        Math.round(pred["Total Predicted Tickets"]).toLocaleString(),
+      ];
+      row.forEach((cell, index) => {
+        doc.text(cell, xOffset, yOffset);
+        xOffset += colWidths[index];
+      });
+      yOffset += 7;
+    });
+
+    // Summary
+    yOffset += 10;
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("Summary:", margin, yOffset);
+    yOffset += 7;
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    if (summary.period_label) {
+      doc.text(`Period: ${summary.period_label}`, margin, yOffset);
+      yOffset += 7;
+      doc.text(`Total Sales: ${Math.round(summary.total_sales).toLocaleString()} tickets`, margin, yOffset);
+      yOffset += 7;
+      doc.text(`Total Revenue: ${formatCurrency(summary.total_sales)}`, margin, yOffset);
+      yOffset += 10;
+    }
+
+    // Suggestions
+    if (suggestions.length > 0) {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Sales Suggestions:", margin, yOffset);
+      yOffset += 7;
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      suggestions.forEach((suggestion, index) => {
+        const lines = doc.splitTextToSize(`${index + 1}. ${suggestion}`, pageWidth - 2 * margin);
+        doc.text(lines, margin, yOffset);
+        yOffset += lines.length * 7;
+      });
+    }
+
+    // Save the PDF
+    doc.save(`Lanka_Lotto_${period}_Predictions.pdf`);
+  };
+
   const chartData = {
     labels: predictions.map((pred) => formatDate(pred.Date)),
     datasets: [
       {
         label: "NLB Predicted Tickets",
         data: predictions.map((pred) => pred["NLB Predicted Tickets"]),
-        borderColor: "rgba(0, 0, 0, 1)", // Black
-        backgroundColor: "rgba(0, 0, 0, 0.2)", // Light black fill
+        borderColor: "rgba(0, 0, 0, 1)",
+        backgroundColor: "rgba(0, 0, 0, 0.2)",
         fill: true,
-        tension: 0.4, // Smooth the line
+        tension: 0.4,
       },
       {
         label: "DLB Predicted Tickets",
         data: predictions.map((pred) => pred["DLB Predicted Tickets"]),
-        borderColor: "rgba(0, 0, 255, 1)", // Blue
-        backgroundColor: "rgba(0, 0, 255, 0.2)", // Light blue fill
+        borderColor: "rgba(0, 0, 255, 1)",
+        backgroundColor: "rgba(0, 0, 255, 0.2)",
         fill: true,
-        tension: 0.4, // Smooth the line
+        tension: 0.4,
       },
     ],
   };
 
-  // Chart options for better styling
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: false, // Allow the chart to adjust its height
+    maintainAspectRatio: false,
     plugins: {
       legend: {
         position: "top",
@@ -149,7 +236,7 @@ const SalesPrediction = () => {
       x: {
         ticks: {
           color: "#000",
-          maxRotation: 45, // Rotate labels to prevent overlap
+          maxRotation: 45,
           minRotation: 45,
         },
         grid: {
@@ -172,7 +259,7 @@ const SalesPrediction = () => {
     <div className="bg-gradient-to-r from-blue-200 to-blue-500 min-h-screen">
       <header className="bg-transparent p-4 flex justify-between items-center border-b border-blue-400">
         <div className="flex items-center gap-2">
-          <div className="bg-yellow-300 rounded-full p- discord nitro 2 w-12 h-12 flex items-center justify-center">
+          <div className="bg-yellow-300 rounded-full p-2 w-12 h-12 flex items-center justify-center">
             {!logoError ? (
               <img
                 src={logo}
@@ -224,18 +311,28 @@ const SalesPrediction = () => {
           <h2 className="text-3xl font-bold mb-6 text-black">Sales Predictions</h2>
 
           {/* Dropdown for Period Selection */}
-          <div className="mb-6">
-            <label htmlFor="periodSelect" className="text-black font-medium mr-2">Select Period:</label>
-            <select
-              id="periodSelect"
-              value={period}
-              onChange={handlePeriodChange}
-              className="p-2 rounded border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">-- Select --</option>
-              <option value="week">Week</option>
-              <option value="month">Month</option>
-            </select>
+          <div className="mb-6 flex items-center gap-4">
+            <div>
+              <label htmlFor="periodSelect" className="text-black font-medium mr-2">Select Period:</label>
+              <select
+                id="periodSelect"
+                value={period}
+                onChange={handlePeriodChange}
+                className="p-2 rounded border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">-- Select --</option>
+                <option value="week">Week</option>
+                <option value="month">Month</option>
+              </select>
+            </div>
+            {period && predictions.length > 0 && (
+              <button
+                onClick={downloadPDF}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                Download PDF
+              </button>
+            )}
           </div>
 
           {/* Predictions Table, Chart, and Summary */}
