@@ -1,0 +1,19 @@
+flask
+pymongo
+werkzeug
+twilio
+python-dotenv
+mongomock==4.1.2
+requests
+base64
+opencv-python  # For cv2
+pyzbar
+beautifulsoup4
+requests-html
+nest-asyncio
+pandas==2.2.2
+numpy==1.26.4
+scikit-learn==1.5.0
+prophet==1.1.5
+python-dateutil==2.9.0.post0
+twilio
