@@ -47,10 +47,10 @@ const AgentSalesDetails = () => {
     fetchAllSales();
   }, [navigate]);
 
-  // Calculate totals
-  const totalDLBSales = salesData.reduce((sum, data) => sum + data.dlb_sale, 0).toFixed(2);
-  const totalNLBSales = salesData.reduce((sum, data) => sum + data.nlb_sale, 0).toFixed(2);
-  const totalSales = salesData.reduce((sum, data) => sum + data.total_sale, 0).toFixed(2);
+  // Calculate totals as integers
+  const totalDLBSales = Math.floor(salesData.reduce((sum, data) => sum + data.dlb_sale, 0));
+  const totalNLBSales = Math.floor(salesData.reduce((sum, data) => sum + data.nlb_sale, 0));
+  const totalSales = Math.floor(salesData.reduce((sum, data) => sum + data.total_sale, 0));
 
   // Enhanced search functionality
   const filteredSalesData = salesData.filter((data) =>
@@ -188,15 +188,15 @@ const AgentSalesDetails = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
               <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
                 <h3 className="text-lg font-medium mb-2">Total DLB Sales</h3>
-                <p className="text-2xl font-bold">Rs. {totalDLBSales}</p>
+                <p className="text-2xl font-bold">{totalDLBSales}</p>
               </div>
               <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
                 <h3 className="text-lg font-medium mb-2">Total NLB Sales</h3>
-                <p className="text-2xl font-bold">Rs. {totalNLBSales}</p>
+                <p className="text-2xl font-bold">{totalNLBSales}</p>
               </div>
               <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
                 <h3 className="text-lg font-medium mb-2">Total Sales</h3>
-                <p className="text-2xl font-bold">Rs. {totalSales}</p>
+                <p className="text-2xl font-bold">{totalSales}</p>
               </div>
               <div className="bg-blue-500 rounded-xl p-6 shadow-md flex flex-col items-center justify-center text-white">
                 <h3 className="text-lg font-medium mb-2">Total Records</h3>
@@ -234,9 +234,9 @@ const AgentSalesDetails = () => {
                       <td className="py-4 px-6 text-center">{data.province}</td>
                       <td className="py-4 px-6 text-center">{data.district}</td>
                       <td className="py-4 px-6 text-center">{data.area}</td>
-                      <td className="py-4 px-6 text-center">{data.dlb_sale}</td>
-                      <td className="py-4 px-6 text-center">{data.nlb_sale}</td>
-                      <td className="py-4 px-6 text-center">{data.total_sale}</td>
+                      <td className="py-4 px-6 text-center">{Math.floor(data.dlb_sale)}</td>
+                      <td className="py-4 px-6 text-center">{Math.floor(data.nlb_sale)}</td>
+                      <td className="py-4 px-6 text-center">{Math.floor(data.total_sale)}</td>
                     </tr>
                   ))}
                 </tbody>

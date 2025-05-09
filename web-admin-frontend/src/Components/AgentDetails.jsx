@@ -141,7 +141,7 @@ const AgentDetails = () => {
                       <td className="py-4 px-6 text-center">{agent.location}</td>
                       <td className="py-4 px-6 text-center">{agent.contact}</td>
                       <td className="py-4 px-6 text-center">
-                        <span className={`px-3 py-1 rounded-full ${agent.status === "Active" ? "bg-green-500" : "bg-red-500"}`}>
+                        <span className={`px-3 py-1 rounded-full ${agent.status === "Active" ? "bg-blue-600" : "bg-red-500"}`}>
                           {agent.status}
                         </span>
                       </td>

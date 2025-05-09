@@ -13,7 +13,7 @@ import {
   Legend,
 } from "chart.js";
 import { FaBell } from "react-icons/fa";
-import jsPDF from "jspdf"; // Import jsPDF
+import jsPDF from "jspdf";
 
 // Register necessary Chart.js components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -25,6 +25,7 @@ const SalesPrediction = () => {
   const [summary, setSummary] = useState({});
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const [message, setMessage] = useState(null); // State for success/error message
   const navigate = useNavigate();
 
   const handleLogoError = () => setLogoError(true);
@@ -42,13 +43,26 @@ const SalesPrediction = () => {
       setPredictions(data.predictions || []);
       setSummary(data.summary || {});
       setSuggestions(data.suggestions || []);
+      // Set success message for prediction loading
+      setMessage({
+        type: "success",
+        text: `${
+          selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)
+        }ly predictions loaded successfully!`,
+      });
     } catch (error) {
       console.error("Error fetching predictions:", error);
       setPredictions([]);
       setSummary({});
       setSuggestions([]);
+      // Optionally, you can add an error message for failed prediction loading
+      setMessage({ type: "error", text: "Failed to load predictions. Please try again." });
     } finally {
       setLoading(false);
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setMessage(null);
+      }, 3000);
     }
   };
 
@@ -91,93 +105,104 @@ const SalesPrediction = () => {
 
   // Function to generate and download PDF
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 10;
-    let yOffset = 20;
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 10;
+      let yOffset = 20;
 
-    // Title
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("Lanka Lotto Sales Predictions", pageWidth / 2, yOffset, { align: "center" });
-    yOffset += 10;
-
-    // Period
-    doc.setFontSize(14);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Period: ${summary.period_label || period.charAt(0).toUpperCase() + period.slice(1)}`, margin, yOffset);
-    yOffset += 10;
-
-    // Predictions Table Header
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Predictions:", margin, yOffset);
-    yOffset += 7;
-
-    // Table Headers
-    const headers = ["Date", "NLB Tickets", "DLB Tickets", "Total Tickets"];
-    const colWidths = [50, 40, 40, 40];
-    let xOffset = margin;
-    headers.forEach((header, index) => {
-      doc.text(header, xOffset, yOffset);
-      xOffset += colWidths[index];
-    });
-    yOffset += 5;
-    doc.line(margin, yOffset, pageWidth - margin, yOffset); // Horizontal line
-    yOffset += 5;
-
-    // Table Data
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    predictions.forEach((pred) => {
-      xOffset = margin;
-      const row = [
-        formatDate(pred.Date),
-        Math.round(pred["NLB Predicted Tickets"]).toLocaleString(),
-        Math.round(pred["DLB Predicted Tickets"]).toLocaleString(),
-        Math.round(pred["Total Predicted Tickets"]).toLocaleString(),
-      ];
-      row.forEach((cell, index) => {
-        doc.text(cell, xOffset, yOffset);
-        xOffset += colWidths[index];
-      });
-      yOffset += 7;
-    });
-
-    // Summary
-    yOffset += 10;
-    doc.setFontSize(12);
-    doc.setFont("helvetica", "bold");
-    doc.text("Summary:", margin, yOffset);
-    yOffset += 7;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    if (summary.period_label) {
-      doc.text(`Period: ${summary.period_label}`, margin, yOffset);
-      yOffset += 7;
-      doc.text(`Total Sales: ${Math.round(summary.total_sales).toLocaleString()} tickets`, margin, yOffset);
-      yOffset += 7;
-      doc.text(`Total Revenue: ${formatCurrency(summary.total_sales)}`, margin, yOffset);
+      // Title
+      doc.setFontSize(18);
+      doc.setFont("helvetica", "bold");
+      doc.text("Lanka Lotto Sales Predictions", pageWidth / 2, yOffset, { align: "center" });
       yOffset += 10;
-    }
 
-    // Suggestions
-    if (suggestions.length > 0) {
+      // Period
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "normal");
+      doc.text(`Period: ${summary.period_label || period.charAt(0).toUpperCase() + period.slice(1)}`, margin, yOffset);
+      yOffset += 10;
+
+      // Predictions Table Header
       doc.setFontSize(12);
       doc.setFont("helvetica", "bold");
-      doc.text("Sales Suggestions:", margin, yOffset);
+      doc.text("Predictions:", margin, yOffset);
+      yOffset += 7;
+
+      // Table Headers
+      const headers = ["Date", "NLB Tickets", "DLB Tickets", "Total Tickets"];
+      const colWidths = [50, 40, 40, 40];
+      let xOffset = margin;
+      headers.forEach((header, index) => {
+        doc.text(header, xOffset, yOffset);
+        xOffset += colWidths[index];
+      });
+      yOffset += 5;
+      doc.line(margin, yOffset, pageWidth - margin, yOffset); // Horizontal line
+      yOffset += 5;
+
+      // Table Data
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      predictions.forEach((pred) => {
+        xOffset = margin;
+        const row = [
+          formatDate(pred.Date),
+          Math.round(pred["NLB Predicted Tickets"]).toLocaleString(),
+          Math.round(pred["DLB Predicted Tickets"]).toLocaleString(),
+          Math.round(pred["Total Predicted Tickets"]).toLocaleString(),
+        ];
+        row.forEach((cell, index) => {
+          doc.text(cell, xOffset, yOffset);
+          xOffset += colWidths[index];
+        });
+        yOffset += 7;
+      });
+
+      // Summary
+      yOffset += 10;
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text("Summary:", margin, yOffset);
       yOffset += 7;
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
-      suggestions.forEach((suggestion, index) => {
-        const lines = doc.splitTextToSize(`${index + 1}. ${suggestion}`, pageWidth - 2 * margin);
-        doc.text(lines, margin, yOffset);
-        yOffset += lines.length * 7;
-      });
+      if (summary.period_label) {
+        doc.text(`Period: ${summary.period_label}`, margin, yOffset);
+        yOffset += 7;
+        doc.text(`Total Sales: ${Math.round(summary.total_sales).toLocaleString()} tickets`, margin, yOffset);
+        yOffset += 7;
+        doc.text(`Total Revenue: ${formatCurrency(summary.total_sales)}`, margin, yOffset);
+        yOffset += 10;
+      }
+
+      // Suggestions
+      if (suggestions.length > 0) {
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("Sales Suggestions:", margin, yOffset);
+        yOffset += 7;
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        suggestions.forEach((suggestion, index) => {
+          const lines = doc.splitTextToSize(`${index + 1}. ${suggestion}`, pageWidth - 2 * margin);
+          doc.text(lines, margin, yOffset);
+          yOffset += lines.length * 7;
+        });
+      }
+
+      // Save the PDF
+      doc.save(`Lanka_Lotto_${period}_Predictions.pdf`);
+      setMessage({ type: "success", text: "PDF downloaded successfully!" });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      setMessage({ type: "error", text: "Failed to download PDF. Please try again." });
     }
 
-    // Save the PDF
-    doc.save(`Lanka_Lotto_${period}_Predictions.pdf`);
+    // Clear message after 3 seconds
+    setTimeout(() => {
+      setMessage(null);
+    }, 3000);
   };
 
   const chartData = {
@@ -307,8 +332,19 @@ const SalesPrediction = () => {
           </nav>
         </div>
 
-        <div className="flex-1 p-8">
+        <div className="flex-1 p-8 relative">
           <h2 className="text-3xl font-bold mb-6 text-black">Sales Predictions</h2>
+
+          {/* Notification Message */}
+          {message && (
+            <div
+              className={`fixed top-4 left-1/2 transform -translate-x-1/2 p-4 rounded-lg shadow-md text-white z-50 ${
+                message.type === "success" ? "bg-green-600" : "bg-red-600"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
 
           {/* Dropdown for Period Selection */}
           <div className="mb-6 flex items-center gap-4">

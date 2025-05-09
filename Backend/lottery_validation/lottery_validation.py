@@ -1,3 +1,4 @@
+#lotery_validaton/lottery_validation.py
 import requests
 import base64
 import cv2
