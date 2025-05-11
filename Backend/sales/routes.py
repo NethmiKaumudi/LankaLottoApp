@@ -6,6 +6,9 @@ from bson.objectid import ObjectId
 from config.config import Config
 from math import isnan
 import jwt  # Add JWT for token validation
+import csv
+import os
+from dateutil.parser import parse  # For flexible date parsing
 
 logging.getLogger('pymongo').setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -22,6 +25,7 @@ try:
 except Exception as e:
     logger.error(f"Error connecting to MongoDB: {str(e)}")
     raise
+
 def admin_required(f):
     def wrapper(*args, **kwargs):
         try:
@@ -45,6 +49,18 @@ def add_sales():
         data = request.get_json()
         logger.info(f"Received payload: {data}")
 
+        # Check if agent_id is provided; if not, look up by agent_name
+        agent_id = data.get('agent_id')
+        agent_name = data.get('agent_name')
+        if not agent_id and agent_name:
+            agent = agents_collection.find_one({'Agent_Name': agent_name, 'Status': True})
+            if not agent:
+                return jsonify({'message': 'Agent not found or not approved'}), 404
+            agent_id = str(agent['_id'])
+            data['agent_id'] = agent_id
+        elif not agent_id:
+            return jsonify({'message': 'agent_id or agent_name is required'}), 400
+
         required_fields = ['agent_id', 'date_of_sale', 'province', 'district', 'area', 'dlb_sale', 'nlb_sale', 'total_sale']
         if not data or not all(field in data and data[field] is not None for field in required_fields):
             return jsonify({'message': 'Missing required fields'}), 400
@@ -53,7 +69,6 @@ def add_sales():
             if not data[field].strip():
                 return jsonify({'message': f'{field.capitalize()} cannot be empty'}), 422
 
-        agent_id = data.get('agent_id')
         try:
             agent = agents_collection.find_one({'_id': ObjectId(agent_id), 'Status': True})
             if not agent:
@@ -63,9 +78,12 @@ def add_sales():
 
         date_of_sale = data.get('date_of_sale')
         try:
-            datetime.strptime(date_of_sale, '%Y-%m-%d')
+            # Parse the date flexibly and convert to YYYY-MM-DD
+            parsed_date = parse(date_of_sale)
+            date_of_sale = parsed_date.strftime('%Y-%m-%d')
+            data['date_of_sale'] = date_of_sale
         except ValueError:
-            return jsonify({'message': 'Invalid date format. Use YYYY-MM-DD'}), 400
+            return jsonify({'message': 'Invalid date format. Use YYYY-MM-DD or a parseable date'}), 400
 
         try:
             dlb_sale = float(data.get('dlb_sale'))
@@ -111,6 +129,50 @@ def add_sales():
         result = sales_collection.insert_one(sales_entry)
         logger.info(f"Sales data saved with ID: {result.inserted_id}")
 
+        # After saving to MongoDB, append to CSV file
+        csv_file_path = os.path.join('data', 'sales_data_full_year.csv')
+        file_exists = os.path.isfile(csv_file_path)
+
+        # Define the CSV headers based on the sales data structure
+        headers = [
+            'Date', 'Agent_Name', 'District', 'Area', 'Province',
+            'NLB_Sales', 'DLB_Sales', 'Total_Sales',
+            'NLB_LKR', 'DLB_LKR', 'Total_LKR'
+        ]
+
+        # Apply conversion rate for LKR values
+        conversion_rate = 40
+        nlb_lkr = nlb_sale * conversion_rate
+        dlb_lkr = dlb_sale * conversion_rate
+        total_lkr = total_sale * conversion_rate
+
+        # Prepare the data row for CSV
+        row = [
+            date_of_sale,
+            agent_name,
+            data.get('district').strip(),
+            data.get('area').strip(),
+            data.get('province').strip(),
+            nlb_sale,
+            dlb_sale,
+            total_sale,
+            nlb_lkr,
+            dlb_lkr,
+            total_lkr
+        ]
+
+        try:
+            with open(csv_file_path, mode='a', newline='', encoding='utf-8') as csv_file:
+                writer = csv.writer(csv_file)
+                # Write header only if the file is newly created
+                if not file_exists:
+                    writer.writerow(headers)
+                writer.writerow(row)
+            logger.info(f"Appended sales data to CSV: {csv_file_path}")
+        except Exception as csv_error:
+            logger.error(f"Error writing to CSV: {str(csv_error)}")
+            # Proceed with success response since MongoDB insertion succeeded
+
         return jsonify({
             'message': 'Sales data saved successfully',
             'sales_id': str(result.inserted_id)
@@ -119,7 +181,6 @@ def add_sales():
     except Exception as e:
         logger.error(f"Error saving sales data: {str(e)}")
         return jsonify({'message': f'Error saving sales data: {str(e)}'}), 500
-
 
 @sales_bp.route('/<sales_id>', methods=['PUT'])
 def update_sale(sales_id):
@@ -263,7 +324,6 @@ def get_all_sales():
     except Exception as e:
         logger.error(f"Error fetching all sales data: {str(e)}")
         return jsonify({'message': f'Error fetching all sales data: {str(e)}'}), 500
-
 
 @sales_bp.route('/by-date', methods=['GET'])
 @admin_required  
