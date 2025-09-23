@@ -1,5 +1,5 @@
 # LankaLottoApp
-This made by using Reactjs Reactnative Flsk,AI and Mngodb
+This made by using Reactjs Reactnative ,Flask,AI,ML and Mongodb
 
 # LankaLottoApp Backend
 
